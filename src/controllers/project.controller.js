@@ -1,5 +1,5 @@
 const express = require('express');
-const db = require('./db');
+const db = require('../db/db');
 
 const router = express.Router();
 
@@ -81,16 +81,28 @@ router.post('/:id/tasks', (req, res) => {
 
   const finalStatus = status || 'PENDING';
 
-  db.run(
-    'INSERT INTO tasks (projectId, title, status) VALUES (?, ?, ?)',
-    [id, title, finalStatus],
-    function (err) {
-      if (err) return res.status(500).json({ error: 'Error al crear tarea' });
-      res
-        .status(201)
-        .json({ id: this.lastID, projectId: Number(id), title, status: finalStatus });
-    }
-  );
+  // Verificar que el proyecto existe antes de crear la tarea
+  db.get('SELECT id FROM projects WHERE id = ?', [id], (err, project) => {
+    if (err) return res.status(500).json({ error: 'Error al verificar proyecto' });
+    if (!project) return res.status(404).json({ error: 'Proyecto no encontrado' });
+
+    // Habilitar foreign keys antes de insertar
+    db.run('PRAGMA foreign_keys = ON', () => {
+      db.run(
+        'INSERT INTO tasks (projectId, title, status) VALUES (?, ?, ?)',
+        [id, title, finalStatus],
+        function (insertErr) {
+          if (insertErr) {
+            console.error('Error al crear tarea:', insertErr);
+            return res.status(500).json({ error: 'Error al crear tarea' });
+          }
+          res
+            .status(201)
+            .json({ id: this.lastID, projectId: Number(id), title, status: finalStatus });
+        }
+      );
+    });
+  });
 });
 
 module.exports = router;

@@ -1,12 +1,20 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
-COPY package.json ./
+# Instalar dependencias del sistema necesarias para sqlite3
+RUN apt-get update && apt-get install -y \
+  python3 \
+  make \
+  g++ \
+  sqlite3 \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json* ./
 RUN npm install
 
 COPY . .
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", "src/index.js"]

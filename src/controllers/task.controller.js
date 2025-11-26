@@ -1,7 +1,15 @@
 const express = require('express');
-const db = require('./db');
+const db = require('../db/db');
 
 const router = express.Router();
+
+// GET /tasks - listar todas las tareas
+router.get('/', (req, res) => {
+  db.all('SELECT * FROM tasks', [], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al obtener tareas' });
+    res.json(rows);
+  });
+});
 
 // GET /tasks/:id - obtener tarea
 router.get('/:id', (req, res) => {
